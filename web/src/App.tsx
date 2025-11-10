@@ -46,33 +46,42 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="hero glass-panel">
-        <span className="hero-pill">SpannerSpy Studio</span>
-        <h1 className="hero-title">
-          Give your <span>Cloud Spanner</span> schema an editorial-grade ER canvas.
-        </h1>
-        <p className="hero-subtitle">
-          Apple-inspired lighting, SchemaSpy-level depth. Pan, zoom, and inspect every relationship with tactile controls and
-          live schema ingestion.
-        </p>
-      </header>
+      <div className="intro-stack">
+        <header className="hero glass-panel" aria-labelledby="hero-title">
+          <p className="hero-pill">SpannerSpy Studio · Principal Surface</p>
+          <h1 id="hero-title" className="hero-title">
+            Cloud Spanner orchestration, tuned for the keynote stage.
+          </h1>
+          <p className="hero-subtitle">
+            Editorial glass, unhurried spacing, and interactions proofed in Vitest 4 browser mode make every schema review feel
+            as intentional as hardware on a turntable. Load live metadata, pan with precision, and handoff assets with zero
+            AI residue.
+          </p>
+          <div className="hero-meta">
+            <span className="hero-chip">Vitest 4 Browser Cert</span>
+            <span className="hero-chip">Live ingestion</span>
+            <span className="hero-chip">Tactile zoom + focus</span>
+          </div>
+        </header>
+        <StatsBar stats={diagram.stats} />
+      </div>
 
-      <StatsBar stats={diagram.stats} />
+      <section className="workspace-grid">
+        <ControlPanel onSchemaLoaded={handleSchemaLoaded} onError={setError} theme={theme} onThemeChange={setTheme} />
 
-      <ControlPanel onSchemaLoaded={handleSchemaLoaded} onError={setError} theme={theme} onThemeChange={setTheme} />
-
-      <DiagramCanvas
-        diagram={diagram}
-        selectedTable={selectedTable?.name}
-        onNodeSelected={(name) => {
-          if (!name) {
-            setSelectedTable(null);
-            return;
-          }
-          const table = diagram.tables.find((item) => item.name === name) ?? null;
-          setSelectedTable(table);
-        }}
-      />
+        <DiagramCanvas
+          diagram={diagram}
+          selectedTable={selectedTable?.name}
+          onNodeSelected={(name) => {
+            if (!name) {
+              setSelectedTable(null);
+              return;
+            }
+            const table = diagram.tables.find((item) => item.name === name) ?? null;
+            setSelectedTable(table);
+          }}
+        />
+      </section>
 
       <TableDrawer table={selectedTable} onClose={() => setSelectedTable(null)} />
       <Toast message={error} onDismiss={() => setError(null)} />

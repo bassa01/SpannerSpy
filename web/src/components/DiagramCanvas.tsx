@@ -32,31 +32,43 @@ export function DiagramCanvas({ diagram, selectedTable, onNodeSelected }: Diagra
   };
 
   return (
-    <section className="diagram-shell glass-panel">
-      <ReactFlow<ERNode, EREdge>
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.35}
-        maxZoom={1.6}
-        panOnScroll
-        selectionOnDrag
-        onNodeClick={handleNodeClick}
-        onPaneClick={() => onNodeSelected(null)}
-        onInit={handleInit}
-      >
-        <Background gap={24} color="rgba(255,255,255,0.05)" />
-        <Controls showInteractive={false} position="bottom-left" />
-        <MiniMap nodeColor={() => "#38bdf8"} pannable zoomable style={{ background: "rgba(15,23,42,0.4)" }} />
-      </ReactFlow>
-      <div className="diagram-legend">
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="legend-dot" style={{ background: "#38bdf8" }} /> Foreign key
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="legend-dot" style={{ background: "#34d399" }} /> Interleaved
-        </span>
+    <section className="diagram-shell glass-panel" aria-label="Diagram workspace">
+      <header className="diagram-header">
+        <div>
+          <p className="hero-pill">Live canvas</p>
+          <h2>Relational landscape</h2>
+          <p>Use trackpad gestures or a mouse to pan, zoom, and precision-select any table.</p>
+        </div>
+        <div className="diagram-meta">
+          <span>Focus snaps · auto layout · mini-map</span>
+        </div>
+      </header>
+      <div className="diagram-stage">
+        <ReactFlow<ERNode, EREdge>
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          minZoom={0.35}
+          maxZoom={1.6}
+          panOnScroll
+          selectionOnDrag
+          onNodeClick={handleNodeClick}
+          onPaneClick={() => onNodeSelected(null)}
+          onInit={handleInit}
+        >
+          <Background gap={28} color="rgba(255,255,255,0.06)" />
+          <Controls showInteractive={false} position="bottom-left" className="diagram-controls" />
+          <MiniMap nodeColor={() => "#0a84ff"} pannable zoomable className="diagram-minimap" />
+        </ReactFlow>
+        <div className="diagram-legend">
+          <span>
+            <span className="legend-dot" data-kind="fk" /> Foreign key
+          </span>
+          <span>
+            <span className="legend-dot" data-kind="interleaved" /> Interleaved
+          </span>
+        </div>
       </div>
     </section>
   );

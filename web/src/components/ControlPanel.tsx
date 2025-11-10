@@ -70,14 +70,17 @@ export function ControlPanel({ onSchemaLoaded, onError, theme, onThemeChange }: 
             Schema Intake
           </p>
           <h2 className="control-title">Bring your Cloud Spanner model to life</h2>
-          <p className="control-description">Upload JSON exported from INFORMATION_SCHEMA or start with the curated sample data set.</p>
+          <p className="control-description">
+            Upload JSON exported from INFORMATION_SCHEMA or start with the curated sample set. Every payload is normalized in
+            real time before a single node renders.
+          </p>
         </div>
         <ThemeToggle theme={theme} onChange={onThemeChange} />
       </div>
 
       <div className="control-actions">
         <button type="button" className="primary-button" onClick={() => presentSchema(normalizeSchema(sampleSchema))}>
-          Load Sample Schema
+          Load curated sample
         </button>
         <label
           className={`file-input-label ${isDragging ? "dragging" : ""}`}
@@ -96,8 +99,14 @@ export function ControlPanel({ onSchemaLoaded, onError, theme, onThemeChange }: 
         </button>
       </div>
 
+      <p className="control-footnote">Validation mirrors our in-house tooling—foreign keys, interleaves, and arrays are linted instantly.</p>
+
       {pasteOpen && (
-        <form onSubmit={submitPaste} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <form onSubmit={submitPaste} className="paste-form">
+          <div className="paste-form__header">
+            <span>Paste JSON payload</span>
+            <span className="hero-chip">Live validation</span>
+          </div>
           <textarea
             className="paste-area"
             spellCheck={false}
@@ -105,12 +114,12 @@ export function ControlPanel({ onSchemaLoaded, onError, theme, onThemeChange }: 
             onChange={(event) => setPasteValue(event.target.value)}
             aria-label="Schema JSON"
           />
-          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+          <div className="paste-form__actions">
             <button type="button" className="secondary-button" onClick={() => setPasteValue(JSON.stringify(sampleSchema, null, 2))}>
               Reset
             </button>
             <button type="submit" className="primary-button">
-              Visualize Schema
+              Visualize schema
             </button>
           </div>
         </form>

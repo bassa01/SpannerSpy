@@ -12,46 +12,49 @@ export function TableDrawer({ table, onClose }: TableDrawerProps) {
     <aside className={clsx("drawer", table && "open")} aria-hidden={!table} aria-live="polite">
       {table ? (
         <>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <header className="drawer-header">
             <div>
-              <p className="hero-pill" style={{ fontSize: "0.75rem", marginBottom: 8 }}>
-                Table Detail
-              </p>
+              <p className="hero-pill">Table detail</p>
               <h2>{table.name}</h2>
+              <p className="drawer-subtitle">
+                {table.columns.length} columns · {table.interleavedIn ? `Interleaved in ${table.interleavedIn}` : "Standalone"}
+              </p>
             </div>
             <button type="button" className="secondary-button" onClick={onClose}>
               Close
             </button>
-          </div>
+          </header>
+          {table.comment && <p className="drawer-comment">{table.comment}</p>}
           {table.interleavedIn && (
-            <div className="column-card" style={{ marginBottom: 8 }}>
+            <div className="drawer-infocard">
               <strong>Interleaved in</strong>
-              <p style={{ margin: "6px 0 0", color: "var(--text-muted)" }}>{table.interleavedIn}</p>
+              <p>{table.interleavedIn}</p>
             </div>
           )}
           <div className="drawer-columns">
             {table.columns.map((column) => (
               <div key={column.name} className="column-card">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="column-card__header">
                   <div>
                     <strong>{column.name}</strong>
-                    <p className="column-type" style={{ margin: "4px 0 0" }}>
+                    <p className="column-type">
                       {column.type} {column.isNullable ? "· nullable" : "· required"}
                     </p>
                   </div>
-                  <div className="table-meta" style={{ marginTop: 0 }}>
+                  <div className="table-meta">
                     {column.isPrimaryKey && <span className="badge">Primary</span>}
                     {column.isArray && <span className="badge">Array</span>}
                   </div>
                 </div>
-                {column.comment && <p style={{ marginTop: 8, color: "var(--text-muted)" }}>{column.comment}</p>}
+                {column.comment && <p className="column-comment">{column.comment}</p>}
               </div>
             ))}
           </div>
         </>
       ) : (
-        <div style={{ marginTop: "40%", textAlign: "center", opacity: 0.6 }}>
+        <div className="drawer-empty">
           <p>Select a table to inspect its schema.</p>
+          <p>Details dock here so the canvas stays uncluttered.</p>
         </div>
       )}
     </aside>

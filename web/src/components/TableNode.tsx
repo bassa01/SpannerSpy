@@ -12,25 +12,33 @@ function TableNode({ data, selected }: Props) {
   return (
     <>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
-      <div className={clsx("table-node", selected && "selected")}>
-        <div>
-          <h3>{table.name}</h3>
-          <div className="table-meta">
-            <span className="badge">{table.columns.length} Columns</span>
-            {table.interleavedIn && <span className="badge">Interleaved</span>}
+      <div className={clsx("table-node", selected && "selected")}
+        role="group"
+        aria-label={`${table.name} table`}
+      >
+        <header className="table-node__head">
+          <div>
+            <p className="table-node__eyebrow">{table.columns.length} columns</p>
+            <h3>{table.name}</h3>
           </div>
-        </div>
+          <div className="table-meta">
+            {table.interleavedIn && <span className="badge">Interleaved</span>}
+            {table.comment && <span className="badge">Annotated</span>}
+          </div>
+        </header>
         <ul className="column-list">
           {table.columns.map((column) => (
             <li key={column.name} className="column-row">
+              <span className="column-dot" aria-hidden />
               <div>
                 <div className="column-name">
-                  {column.isPrimaryKey && "★ "}
+                  {column.isPrimaryKey && <span className="column-chip">PK</span>}
                   {column.name}
                 </div>
                 <div className="column-type">
-                  {column.type}
-                  {!column.isNullable && " · required"}
+                  <span>{column.type}</span>
+                  {!column.isNullable && <span>Required</span>}
+                  {column.isArray && <span>Array</span>}
                 </div>
               </div>
             </li>
