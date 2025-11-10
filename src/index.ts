@@ -69,7 +69,7 @@ function printHelp() {
   console.log("Usage: bun start -- [options]\n");
   console.log("Options:");
   console.log("  -i, --input <path>    Path to a JSON schema exported from Cloud Spanner");
-  console.log("  -d, --ddl <path>      Path to a Cloud Spanner DDL (SQL) file to parse with memefish");
+  console.log("  -d, --ddl <path>      Path to a Cloud Spanner DDL file or directory to parse with memefish");
   console.log("      --sample          Use the built-in sample schema");
   console.log("  -f, --format <fmt>    Output format: mermaid (default) or json");
   console.log("  -o, --output <path>   Write diagram to disk instead of stdout");
