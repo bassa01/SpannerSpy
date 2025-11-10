@@ -2,7 +2,8 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { SpannerSchema } from "../types";
+import type { SpannerSchema } from "../types";
+import { normalizeSchema } from "./normalize-schema";
 
 const PROJECT_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const BIN_DIR = path.join(PROJECT_ROOT, "bin");
@@ -106,22 +107,4 @@ async function fileExists(target: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-export function normalizeSchema(schema: SpannerSchema): SpannerSchema {
-  return {
-    tables: schema.tables.map((table) => ({
-      ...table,
-      primaryKey: table.primaryKey ?? [],
-      columns: table.columns.map((column) => ({
-        isNullable: column.isNullable ?? true,
-        isArray: column.isArray ?? false,
-        ...column,
-      })),
-    })),
-    foreignKeys: schema.foreignKeys?.map((fk) => ({
-      ...fk,
-      name: fk.name || `${fk.referencingTable}_${fk.referencedTable}`,
-    })),
-  } satisfies SpannerSchema;
 }

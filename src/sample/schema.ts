@@ -1,4 +1,4 @@
-import { SpannerSchema } from "../types";
+import type { SpannerSchema } from "../types";
 
 export const sampleSchema: SpannerSchema = {
   tables: [

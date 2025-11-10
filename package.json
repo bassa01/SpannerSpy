@@ -7,10 +7,26 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "typecheck": "bunx tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "web:dev": "bunx vite --config web/vite.config.ts",
+    "web:build": "bunx vite build --config web/vite.config.ts",
+    "web:preview": "bunx vite preview --config web/vite.config.ts",
+    "web:typecheck": "bunx tsc -p web/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.9.3"
+    "@types/dagre": "^0.7.51",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^5.1.6"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.3.5",
+    "clsx": "^2.1.1",
+    "dagre": "^0.8.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

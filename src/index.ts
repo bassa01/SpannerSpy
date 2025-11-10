@@ -1,9 +1,10 @@
 import { buildDiagram } from "./lib/diagram-builder";
-import { CliOptions, HelpRequestedError, parseArgs } from "./lib/parse-args";
+import { HelpRequestedError, parseArgs } from "./lib/parse-args";
 import { loadSchemaFromDdl, loadSchemaFromFile } from "./lib/schema-loader";
 import { renderMermaid } from "./renderers/mermaid";
 import { sampleSchema } from "./sample/schema";
-import { DiagramModel, SpannerSchema } from "./types";
+import type { CliOptions } from "./lib/parse-args";
+import type { DiagramModel, SpannerSchema } from "./types";
 
 async function main() {
   try {

@@ -1,4 +1,4 @@
-import { DiagramModel, DiagramNode, DiagramEdge, SpannerSchema } from "../types";
+import type { DiagramModel, DiagramNode, DiagramEdge, SpannerSchema } from "../types";
 
 export function buildDiagram(schema: SpannerSchema): DiagramModel {
   const nodes: DiagramNode[] = schema.tables.map((table) => ({
