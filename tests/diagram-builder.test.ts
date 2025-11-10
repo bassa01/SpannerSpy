@@ -7,6 +7,8 @@ describe("buildDiagram", () => {
     const model = buildDiagram(sampleSchema);
     expect(model.nodes).toHaveLength(2);
     expect(model.edges.length).toBeGreaterThan(0);
-    expect(model.nodes[0].fields.some((field) => field.startsWith("*"))).toBe(true);
+    const firstNode = model.nodes[0];
+    expect(firstNode).toBeDefined();
+    expect(firstNode?.fields.some((field) => field.startsWith("*"))).toBe(true);
   });
 });

@@ -35,6 +35,21 @@ bun install
 
 Run the test suite with `bun test` and type-check with `bun run typecheck`.
 
+## Web Studio UI
+
+Explore the schema as an interactive ER experience that mirrors SchemaSpy while adopting a clean, high-contrast Apple-inspired aesthetic.
+
+- Start the Vite-powered UI dev server: `bun run web:dev`
+- Type-check the UI: `bun run web:typecheck`
+- Create a production build: `bun run web:build` (outputs `web/dist`)
+- Preview the production build locally: `bun run web:preview`
+
+The studio lets you:
+
+1. Load the built-in sample schema or drop/paste any JSON exported from Cloud Spanner.
+2. Pan/zoom a glassmorphic React Flow canvas with automatic dagre layout, FK + interleaving edge legends, and Apple-like lighting.
+3. Inspect any table via the slide-in drawer to review columns, primary keys, and interleaving metadata.
+
 ### About `--ddl`
 When you pass `--ddl path/to/schema.sql`, SpannerSpy shells out to a tiny Go binary located in `tools/ddlparser`. That binary embeds the official memefish query parser and converts the AST into the JSON schema format that the rest of the TypeScript pipeline already understands. The first run will automatically run `go build` and drop the compiled helper in `bin/spannerspy-ddl-parser`. Set `SPANNERSPY_MEMEFISH_PARSER=/absolute/path/to/parser` if you want to reuse a custom build or distribute a precompiled binary.
 

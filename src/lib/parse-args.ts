@@ -23,32 +23,51 @@ export function parseArgs(argv: string[]): CliOptions {
 
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
+    if (!token) {
+      continue;
+    }
     switch (token) {
       case "-i":
       case "--input": {
-        input = argv[i + 1];
+        const value = argv[i + 1];
+        if (!value) {
+          throw new Error(`Missing value for ${token}`);
+        }
+        input = value;
         i += 1;
         break;
       }
       case "-d":
       case "--ddl": {
-        ddl = argv[i + 1];
+        const value = argv[i + 1];
+        if (!value) {
+          throw new Error(`Missing value for ${token}`);
+        }
+        ddl = value;
         i += 1;
         break;
       }
       case "-o":
       case "--output": {
-        output = argv[i + 1];
+        const value = argv[i + 1];
+        if (!value) {
+          throw new Error(`Missing value for ${token}`);
+        }
+        output = value;
         i += 1;
         break;
       }
       case "-f":
       case "--format": {
         const value = argv[i + 1];
+        if (!value) {
+          throw new Error("Missing value for --format");
+        }
         i += 1;
         const normalized = value?.toLowerCase();
         if (normalized && normalized in FORMAT_ALIASES) {
-          format = FORMAT_ALIASES[normalized];
+          const nextFormat = FORMAT_ALIASES[normalized as keyof typeof FORMAT_ALIASES]!;
+          format = nextFormat;
         } else {
           throw new Error(`Unsupported format: ${value}`);
         }

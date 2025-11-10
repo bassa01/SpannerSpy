@@ -1,4 +1,4 @@
-import { DiagramModel } from "../types";
+import type { DiagramModel } from "../types";
 
 export function renderMermaid(model: DiagramModel): string {
   const lines = ["erDiagram"];
