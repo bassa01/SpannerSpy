@@ -1,1 +1,72 @@
 # SpannerSpy
+
+Generate lightweight ER diagrams from Cloud Spanner schemas using TypeScript + Bun.
+
+## Prerequisites
+- [Bun](https://bun.sh) v1.2+ (provides the runtime, package manager, and test runner)
+
+## Install
+```
+bun install
+```
+
+## Usage
+- Print the built-in example diagram:
+  ```
+  bun start -- --sample
+  ```
+- Convert a schema JSON file (see the format below) into Mermaid ER syntax:
+  ```
+  bun start -- --input ./schema.json > diagram.mmd
+  ```
+- Emit the intermediate diagram model instead of Mermaid:
+  ```
+  bun start -- --input ./schema.json --format json
+  ```
+- Continuously rebuild while editing TypeScript sources:
+  ```
+  bun run --watch src/index.ts -- --sample
+  ```
+
+Run the test suite with `bun test` and type-check with `bun run typecheck`.
+
+## Schema Format
+The CLI expects a JSON payload shaped like this:
+```json
+{
+  "tables": [
+    {
+      "name": "Albums",
+      "primaryKey": ["SingerId", "AlbumId"],
+      "columns": [
+        { "name": "SingerId", "type": "INT64", "isNullable": false },
+        { "name": "AlbumId", "type": "INT64", "isNullable": false },
+        { "name": "AlbumTitle", "type": "STRING" }
+      ],
+      "interleavedIn": "Singers"
+    }
+  ],
+  "foreignKeys": [
+    {
+      "name": "fk_albums_singers",
+      "referencingTable": "Albums",
+      "referencingColumns": ["SingerId"],
+      "referencedTable": "Singers",
+      "referencedColumns": ["SingerId"]
+    }
+  ]
+}
+```
+This mirrors the information you can fetch from `INFORMATION_SCHEMA` when querying Cloud Spanner. Future work can add direct querying + transformation, but the current setup keeps things minimal while providing a clear extension point via TypeScript modules in `src/`.
+
+## Project Structure
+- `src/index.ts` — CLI entry point.
+- `src/lib` — schema normalization + diagram builder helpers.
+- `src/renderers` — format-specific output (currently Mermaid ER diagrams).
+- `src/sample/schema.ts` — self-contained sample schema for demos/tests.
+- `tests` — Bun test files.
+
+## Next Steps
+1. Connect to Cloud Spanner (REST or gcloud CLI) to auto-export schemas.
+2. Expand renderers (e.g., PlantUML, Graphviz) by following the `DiagramModel` abstraction.
+3. Enrich metadata (indexes, interleaving depth, on-delete semantics) before diagramming.
