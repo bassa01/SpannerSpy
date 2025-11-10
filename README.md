@@ -4,6 +4,7 @@ Generate lightweight ER diagrams from Cloud Spanner schemas using TypeScript + B
 
 ## Prerequisites
 - [Bun](https://bun.sh) v1.2+ (provides the runtime, package manager, and test runner)
+- [Go](https://go.dev/dl/) 1.21+ (only required when parsing Cloud Spanner DDL; used to compile the bundled [memefish](https://github.com/cloudspannerecosystem/memefish) helper)
 
 ## Install
 ```
@@ -19,6 +20,10 @@ bun install
   ```
   bun start -- --input ./schema.json > diagram.mmd
   ```
+- Parse raw Cloud Spanner DDL (SQL) using memefish and emit Mermaid:
+  ```
+  bun start -- --ddl ./schema.sql
+  ```
 - Emit the intermediate diagram model instead of Mermaid:
   ```
   bun start -- --input ./schema.json --format json
@@ -29,6 +34,9 @@ bun install
   ```
 
 Run the test suite with `bun test` and type-check with `bun run typecheck`.
+
+### About `--ddl`
+When you pass `--ddl path/to/schema.sql`, SpannerSpy shells out to a tiny Go binary located in `tools/ddlparser`. That binary embeds the official memefish query parser and converts the AST into the JSON schema format that the rest of the TypeScript pipeline already understands. The first run will automatically run `go build` and drop the compiled helper in `bin/spannerspy-ddl-parser`. Set `SPANNERSPY_MEMEFISH_PARSER=/absolute/path/to/parser` if you want to reuse a custom build or distribute a precompiled binary.
 
 ## Schema Format
 The CLI expects a JSON payload shaped like this:
@@ -64,6 +72,8 @@ This mirrors the information you can fetch from `INFORMATION_SCHEMA` when queryi
 - `src/lib` — schema normalization + diagram builder helpers.
 - `src/renderers` — format-specific output (currently Mermaid ER diagrams).
 - `src/sample/schema.ts` — self-contained sample schema for demos/tests.
+- `src/sample/schema.sql` — Cloud Spanner DDL equivalent of the sample schema.
+- `tools/ddlparser` — Go command that wraps memefish and emits the JSON schema SpannerSpy consumes.
 - `tests` — Bun test files.
 
 ## Next Steps
