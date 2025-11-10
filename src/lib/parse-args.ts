@@ -2,6 +2,7 @@ export type OutputFormat = "mermaid" | "json";
 
 export interface CliOptions {
   input?: string;
+  ddl?: string;
   output?: string;
   format: OutputFormat;
   sample: boolean;
@@ -15,6 +16,7 @@ const FORMAT_ALIASES: Record<string, OutputFormat> = {
 
 export function parseArgs(argv: string[]): CliOptions {
   let input: string | undefined;
+  let ddl: string | undefined;
   let output: string | undefined;
   let format: OutputFormat = "mermaid";
   let sample = false;
@@ -25,6 +27,12 @@ export function parseArgs(argv: string[]): CliOptions {
       case "-i":
       case "--input": {
         input = argv[i + 1];
+        i += 1;
+        break;
+      }
+      case "-d":
+      case "--ddl": {
+        ddl = argv[i + 1];
         i += 1;
         break;
       }
@@ -64,7 +72,11 @@ export function parseArgs(argv: string[]): CliOptions {
     }
   }
 
-  return { input, output, format, sample };
+  if ((sample ? 1 : 0) + Number(Boolean(input)) + Number(Boolean(ddl)) > 1) {
+    throw new Error("Use only one schema source: --sample, --input, or --ddl.");
+  }
+
+  return { input, ddl, output, format, sample };
 }
 
 export class HelpRequestedError extends Error {
