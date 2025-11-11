@@ -24,6 +24,7 @@ bun install
   ```
   bun start -- --ddl ./schema.sql
   ```
+  The `--ddl` flag also accepts a directory, in which case every `.sql`/`.ddl` file under that tree is merged into a single schema before rendering.
 - Emit the intermediate diagram model instead of Mermaid:
   ```
   bun start -- --input ./schema.json --format json
@@ -51,7 +52,7 @@ The studio lets you:
 3. Inspect any table via the slide-in drawer to review columns, primary keys, and interleaving metadata.
 
 ### About `--ddl`
-When you pass `--ddl path/to/schema.sql`, SpannerSpy shells out to a tiny Go binary located in `tools/ddlparser`. That binary embeds the official memefish query parser and converts the AST into the JSON schema format that the rest of the TypeScript pipeline already understands. The first run will automatically run `go build` and drop the compiled helper in `bin/spannerspy-ddl-parser`. Set `SPANNERSPY_MEMEFISH_PARSER=/absolute/path/to/parser` if you want to reuse a custom build or distribute a precompiled binary.
+When you pass `--ddl path/to/schema.sql`, SpannerSpy shells out to a tiny Go binary located in `tools/ddlparser`. You can also point `--ddl` at a directory to recursively merge every `.sql`/`.ddl` file into a single ER diagram—handy when each table lives in its own file. That binary embeds the official memefish query parser and converts the AST into the JSON schema format that the rest of the TypeScript pipeline already understands. The first run will automatically run `go build` and drop the compiled helper in `bin/spannerspy-ddl-parser`. Set `SPANNERSPY_MEMEFISH_PARSER=/absolute/path/to/parser` if you want to reuse a custom build or distribute a precompiled binary.
 
 ## Schema Format
 The CLI expects a JSON payload shaped like this:
