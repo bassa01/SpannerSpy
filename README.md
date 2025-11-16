@@ -41,6 +41,74 @@ bun install
 
 Run the test suite with `bun test` and type-check with `bun run typecheck`.
 
+## Standalone Binaries
+Bun can compile the CLI and the MCP server into single-file executables that do not require a Bun runtime on the target machine.
+
+- `bun run build:cli` — emits `dist/spannerspy` (or `dist/spannerspy.exe` on Windows). This binary exposes the same CLI flags as `bun start`.
+- `bun run build:mcp` — emits `dist/spannerspy-mcp`, a stdio-based MCP server binary.
+- `bun run build:all` — convenience command that produces both binaries.
+
+The repository’s `bin` entries point at `dist/` so you can `npm pack`/`npm publish` after running `bun run build:all`. Keep the compiled files out of source control (`dist/` is already gitignored).
+
+## MCP Server (Cursor, Claude, etc.)
+The MCP endpoint exposes a single tool named `spannerspy.renderDiagram`. It accepts the same schema sources as the CLI and returns either Mermaid text or the serialized diagram model depending on `format`.
+
+### Run locally
+- Development: `bun run mcp`
+- Binary: `bun run build:mcp && ./dist/spannerspy-mcp`
+
+The server listens on stdio, so avoid writing to stdout (logs go to stderr).
+
+### Register with Cursor
+1. Enable MCP under `Cursor Settings → Experimental → MCP` once.  
+2. Create or update `~/.cursor/mcp.json` (`%USERPROFILE%\.cursor\mcp.json` on Windows) with an entry for SpannerSpy, then restart Cursor to reload.
+
+```json
+{
+  "mcpServers": {
+    "spannerspy": {
+      "command": "/absolute/path/to/dist/spannerspy-mcp",
+      "args": [],
+      "env": {
+        "SPANNERSPY_MEMEFISH_PARSER": "/optional/custom/parser"
+      }
+    }
+  }
+}
+```
+
+Cursor exposes MCP tools from the chat composer (`Cmd/Ctrl+L`). Select `spannerspy.renderDiagram`, provide arguments (examples below), and the response will contain the rendered Mermaid text you can copy into a Markdown block or preview directly in Cursor.
+
+### Tool arguments
+| Field | Notes |
+| --- | --- |
+| `format` | `"mermaid"` (default) or `"json"` for the raw diagram model. |
+| `sample` | `true` to render the built-in sample schema without any files. |
+| `schemaPaths` | Array of file or directory paths containing JSON schemas (same as `--input`). |
+| `schemaJson` / `schemaJsons` | Inline JSON payload(s) when the schema is not on disk. |
+| `ddlPaths` | Array of `.sql` files or directories; the server will order statements automatically. |
+| `ddl` | Raw Cloud Spanner DDL string (identical to piping a temp file through `--ddl`). |
+
+Provide exactly one schema source per call.
+
+#### Example payloads
+
+Generate Mermaid from JSON files on disk:
+```json
+{
+  "format": "mermaid",
+  "schemaPaths": ["./schemas/billing", "./schemas/warehouse"]
+}
+```
+
+Render JSON diagram output from a pasted DDL snippet:
+```json
+{
+  "format": "json",
+  "ddl": "CREATE TABLE Singers (...);"
+}
+```
+
 ## Web Studio UI
 
 Explore the schema as an interactive ER experience that mirrors SchemaSpy while adopting a clean, high-contrast Apple-inspired aesthetic.

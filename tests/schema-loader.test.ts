@@ -60,7 +60,12 @@ describe("loadSchemaFromDdl", () => {
 
     const indexes = schema.indexes ?? [];
     expect(indexes).toHaveLength(1);
-    expect(indexes[0]).toMatchObject({
+    const primaryIndex = indexes[0];
+    expect(primaryIndex).toBeTruthy();
+    if (!primaryIndex) {
+      throw new Error("Expected idx_orders_status to exist");
+    }
+    expect(primaryIndex).toMatchObject({
       name: "idx_orders_status",
       table: "Orders",
       interleavedIn: "Tenants",
@@ -68,7 +73,7 @@ describe("loadSchemaFromDdl", () => {
       isNullFiltered: true,
       storing: ["Description"],
     });
-    expect(indexes[0].columns).toEqual([
+    expect(primaryIndex.columns).toEqual([
       { name: "TenantId", direction: "ASC" },
       { name: "Status", direction: "DESC" },
     ]);

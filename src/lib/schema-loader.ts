@@ -24,6 +24,26 @@ export async function loadSchemaFromFile(path: string): Promise<SpannerSchema> {
   return normalizeSchema(payload as SpannerSchema);
 }
 
+export async function loadSchemaFromJsonString(payload: string): Promise<SpannerSchema> {
+  if (!payload.trim()) {
+    throw new Error("Schema JSON payload cannot be empty");
+  }
+  return parseSchemaJson(payload);
+}
+
+export async function loadSchemaFromJsonStrings(payloads: string[]): Promise<SpannerSchema> {
+  if (payloads.length === 0) {
+    throw new Error("No schema JSON payloads provided");
+  }
+  const schemas = payloads.map((payload) => {
+    if (!payload.trim()) {
+      throw new Error("Encountered an empty schema JSON payload");
+    }
+    return parseSchemaJson(payload);
+  });
+  return mergeSchemas(schemas);
+}
+
 export async function loadSchemaFromPaths(inputs: string[]): Promise<SpannerSchema> {
   if (inputs.length === 0) {
     throw new Error("No schema input paths provided");
@@ -41,15 +61,7 @@ export async function loadSchemaFromPaths(inputs: string[]): Promise<SpannerSche
 
   const partialSchemas = await Promise.all(schemaFiles.map((filePath) => loadSchemaFromFile(filePath)));
 
-  const tables = partialSchemas.flatMap((schema) => schema.tables);
-  const foreignKeys = partialSchemas.flatMap((schema) => schema.foreignKeys ?? []);
-  const indexes = partialSchemas.flatMap((schema) => schema.indexes ?? []);
-
-  return normalizeSchema({
-    tables,
-    foreignKeys: foreignKeys.length ? foreignKeys : undefined,
-    indexes: indexes.length ? indexes : undefined,
-  });
+  return mergeSchemas(partialSchemas);
 }
 
 export async function loadSchemaFromDdlPaths(inputs: string[]): Promise<SpannerSchema> {
@@ -72,7 +84,7 @@ export async function loadSchemaFromDdlPaths(inputs: string[]): Promise<SpannerS
   }
 
   const combinedScript = await buildOrderedDdlScript(ddlFiles);
-  return loadSchemaFromCombinedDdl(combinedScript);
+  return loadSchemaFromDdlString(combinedScript);
 }
 
 export async function loadSchemaFromDdl(sourcePath: string): Promise<SpannerSchema> {
@@ -246,7 +258,10 @@ function hasAllowedExtension(filePath: string, extensions: string[]): boolean {
   return extensions.some((ext) => lower.endsWith(ext));
 }
 
-async function loadSchemaFromCombinedDdl(sql: string): Promise<SpannerSchema> {
+export async function loadSchemaFromDdlString(sql: string): Promise<SpannerSchema> {
+  if (!sql.trim()) {
+    throw new Error("DDL payload cannot be empty");
+  }
   const tempDir = await mkdtemp(path.join(tmpdir(), "spannerspy-ddl-"));
   const tempFile = path.join(tempDir, "combined.sql");
   try {
@@ -255,6 +270,31 @@ async function loadSchemaFromCombinedDdl(sql: string): Promise<SpannerSchema> {
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
+}
+
+function parseSchemaJson(payload: string): SpannerSchema {
+  try {
+    const parsed = JSON.parse(payload) as SpannerSchema;
+    return normalizeSchema(parsed);
+  } catch (error) {
+    throw new Error(`Schema JSON payload is invalid: ${(error as Error).message}`);
+  }
+}
+
+function mergeSchemas(schemas: SpannerSchema[]): SpannerSchema {
+  if (schemas.length === 1) {
+    return schemas[0]!;
+  }
+
+  const tables = schemas.flatMap((schema) => schema.tables);
+  const foreignKeys = schemas.flatMap((schema) => schema.foreignKeys ?? []);
+  const indexes = schemas.flatMap((schema) => schema.indexes ?? []);
+
+  return normalizeSchema({
+    tables,
+    foreignKeys: foreignKeys.length ? foreignKeys : undefined,
+    indexes: indexes.length ? indexes : undefined,
+  });
 }
 
 type StatementKind = "createTable" | "alterTable" | "createIndex" | "other";
