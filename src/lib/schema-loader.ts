@@ -407,7 +407,7 @@ function classifyStatement(statement: string): StatementKind {
   if (/^ALTER\s+TABLE\b/.test(head)) {
     return "alterTable";
   }
-  if (/^CREATE\s+(?:UNIQUE\s+)?(?:NULL\s+FILTERED\s+)?INDEX\b/.test(head)) {
+  if (/^CREATE\s+(?:UNIQUE\s+)?(?:NULL[_\s]+FILTERED\s+)?INDEX\b/.test(head)) {
     return "createIndex";
   }
   return "other";
