@@ -15,5 +15,12 @@ export function normalizeSchema(schema: SpannerSchema): SpannerSchema {
       ...fk,
       name: fk.name || `${fk.referencingTable}_${fk.referencedTable}`,
     })),
+    indexes: schema.indexes?.map((index) => ({
+      ...index,
+      columns: index.columns?.map((column) => ({
+        ...column,
+      })) ?? [],
+      storing: index.storing ?? [],
+    })),
   } satisfies SpannerSchema;
 }

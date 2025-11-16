@@ -4,7 +4,8 @@ CREATE TABLE Tenants (
   BillingAccount STRING(64),
   Active BOOL,
   CreatedAt TIMESTAMP NOT NULL
-) PRIMARY KEY (TenantId);
+) PRIMARY KEY (TenantId),
+  ROW DELETION POLICY (OLDER_THAN(CreatedAt, INTERVAL 365 DAY));
 
 CREATE TABLE AllTypes (
   TenantId INT64 NOT NULL,
@@ -41,3 +42,14 @@ CREATE TABLE Orders (
 ALTER TABLE Orders
   ADD FOREIGN KEY (TenantId, TypeId)
   REFERENCES AllTypes (TenantId, TypeId);
+
+ALTER TABLE Orders
+  ADD ROW DELETION POLICY (OLDER_THAN(RequestedAt, INTERVAL 30 DAY));
+
+ALTER TABLE Orders
+  REPLACE ROW DELETION POLICY (OLDER_THAN(RequestedAt, INTERVAL 60 DAY));
+
+CREATE UNIQUE NULL_FILTERED INDEX idx_orders_status
+  ON Orders (TenantId ASC, Status DESC)
+  STORING (Description),
+  INTERLEAVE IN Tenants;
