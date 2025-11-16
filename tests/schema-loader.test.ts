@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import { fileURLToPath } from "node:url";
 
-import { loadSchemaFromDdl } from "../src/lib/schema-loader";
+import { loadSchemaFromDdl, loadSchemaFromPaths } from "../src/lib/schema-loader";
 import { sampleSchema } from "../src/sample/schema";
 
 const sampleDdlPath = fileURLToPath(new URL("../src/sample/schema.sql", import.meta.url));
 const complexDdlPath = fileURLToPath(new URL("./fixtures/complex-schema.sql", import.meta.url));
+const multiSchemaDirA = fileURLToPath(new URL("./fixtures/multi-schema/service-a", import.meta.url));
+const multiSchemaDirB = fileURLToPath(new URL("./fixtures/multi-schema/service-b", import.meta.url));
 
 describe("loadSchemaFromDdl", () => {
   it("parses Cloud Spanner DDL into the schema model", async () => {
@@ -69,5 +71,18 @@ describe("loadSchemaFromDdl", () => {
       { name: "TenantId", direction: "ASC" },
       { name: "Status", direction: "DESC" },
     ]);
+  });
+});
+
+describe("loadSchemaFromPaths", () => {
+  it("aggregates schemas nested within directories", async () => {
+    const schema = await loadSchemaFromPaths([multiSchemaDirA, multiSchemaDirB]);
+    const tableNames = schema.tables.map((table) => table.name).sort();
+    expect(tableNames).toEqual(["Artists", "Records"]);
+
+    const fk = schema.foreignKeys?.find((key) => key.name === "fk_records_artists");
+    expect(fk).toBeTruthy();
+    expect(fk?.referencingTable).toBe("Records");
+    expect(fk?.referencedTable).toBe("Artists");
   });
 });

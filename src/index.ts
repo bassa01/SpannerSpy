@@ -1,6 +1,6 @@
 import { buildDiagram } from "./lib/diagram-builder";
 import { HelpRequestedError, parseArgs } from "./lib/parse-args";
-import { loadSchemaFromDdl, loadSchemaFromFile } from "./lib/schema-loader";
+import { loadSchemaFromDdl, loadSchemaFromPaths } from "./lib/schema-loader";
 import { renderMermaid } from "./renderers/mermaid";
 import { sampleSchema } from "./sample/schema";
 import type { CliOptions } from "./lib/parse-args";
@@ -25,7 +25,8 @@ async function main() {
 }
 
 async function resolveSchema(options: CliOptions): Promise<SpannerSchema> {
-  const sourcesChosen = (options.sample ? 1 : 0) + Number(Boolean(options.input)) + Number(Boolean(options.ddl));
+  const hasInputs = options.inputPaths.length > 0;
+  const sourcesChosen = (options.sample ? 1 : 0) + Number(hasInputs) + Number(Boolean(options.ddl));
 
   if (sourcesChosen === 0) {
     throw new Error("No schema input provided. Use --sample, --input path/to/schema.json, or --ddl path/to/schema.sql.");
@@ -39,8 +40,8 @@ async function resolveSchema(options: CliOptions): Promise<SpannerSchema> {
     return loadSchemaFromDdl(options.ddl);
   }
 
-  if (options.input) {
-    return loadSchemaFromFile(options.input);
+  if (hasInputs) {
+    return loadSchemaFromPaths(options.inputPaths);
   }
 
   throw new Error("Unable to resolve schema source.");
@@ -68,7 +69,7 @@ function printHelp() {
   console.log(`SpannerSpy — generate ER diagrams from Cloud Spanner schemas\n\n`);
   console.log("Usage: bun start -- [options]\n");
   console.log("Options:");
-  console.log("  -i, --input <path>    Path to a JSON schema exported from Cloud Spanner");
+  console.log("  -i, --input <path>    JSON schema file or directory containing schema files (repeatable)");
   console.log("  -d, --ddl <path>      Path to a Cloud Spanner DDL (SQL) file to parse with memefish");
   console.log("      --sample          Use the built-in sample schema");
   console.log("  -f, --format <fmt>    Output format: mermaid (default) or json");

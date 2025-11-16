@@ -1,0 +1,12 @@
+{
+  "tables": [
+    {
+      "name": "Artists",
+      "primaryKey": ["ArtistId"],
+      "columns": [
+        { "name": "ArtistId", "type": "INT64", "isNullable": false },
+        { "name": "Name", "type": "STRING" }
+      ]
+    }
+  ]
+}
