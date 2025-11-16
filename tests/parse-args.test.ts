@@ -5,14 +5,14 @@ import { HelpRequestedError, parseArgs } from "../src/lib/parse-args";
 describe("parseArgs", () => {
   it("parses positional inputs and defaults to mermaid", () => {
     const options = parseArgs(["schema.json"]);
-    expect(options).toMatchObject({ input: "schema.json", format: "mermaid" });
+    expect(options).toMatchObject({ inputPaths: ["schema.json"], format: "mermaid" });
   });
 
   it("accepts all long flags", () => {
     const options = parseArgs(["--input", "in.json", "--output", "out.mmd", "--format", "json"]);
     expect(options).toEqual({
-      input: "in.json",
-      ddl: undefined,
+      inputPaths: ["in.json"],
+      ddlPaths: [],
       output: "out.mmd",
       format: "json",
       sample: false,
@@ -35,5 +35,15 @@ describe("parseArgs", () => {
 
   it("throws HelpRequestedError for --help", () => {
     expect(() => parseArgs(["--help"])).toThrow(HelpRequestedError);
+  });
+
+  it("collects multiple paths from repeated flags and positionals", () => {
+    const options = parseArgs(["--input", "first", "second", "--input", "third"]);
+    expect(options.inputPaths).toEqual(["first", "second", "third"]);
+  });
+
+  it("collects multiple DDL paths", () => {
+    const options = parseArgs(["--ddl", "a.sql", "--ddl", "dir"]);
+    expect(options.ddlPaths).toEqual(["a.sql", "dir"]);
   });
 });

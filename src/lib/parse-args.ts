@@ -1,8 +1,8 @@
 export type OutputFormat = "mermaid" | "json";
 
 export interface CliOptions {
-  input?: string;
-  ddl?: string;
+  inputPaths: string[];
+  ddlPaths: string[];
   output?: string;
   format: OutputFormat;
   sample: boolean;
@@ -15,8 +15,8 @@ const FORMAT_ALIASES: Record<string, OutputFormat> = {
 };
 
 export function parseArgs(argv: string[]): CliOptions {
-  let input: string | undefined;
-  let ddl: string | undefined;
+  const inputPaths: string[] = [];
+  const ddlPaths: string[] = [];
   let output: string | undefined;
   let format: OutputFormat = "mermaid";
   let sample = false;
@@ -33,7 +33,7 @@ export function parseArgs(argv: string[]): CliOptions {
         if (!value) {
           throw new Error(`Missing value for ${token}`);
         }
-        input = value;
+        inputPaths.push(value);
         i += 1;
         break;
       }
@@ -43,7 +43,7 @@ export function parseArgs(argv: string[]): CliOptions {
         if (!value) {
           throw new Error(`Missing value for ${token}`);
         }
-        ddl = value;
+        ddlPaths.push(value);
         i += 1;
         break;
       }
@@ -83,7 +83,7 @@ export function parseArgs(argv: string[]): CliOptions {
       }
       default: {
         if (!token.startsWith("-")) {
-          input = token;
+          inputPaths.push(token);
         } else {
           throw new Error(`Unknown flag: ${token}`);
         }
@@ -91,11 +91,13 @@ export function parseArgs(argv: string[]): CliOptions {
     }
   }
 
-  if ((sample ? 1 : 0) + Number(Boolean(input)) + Number(Boolean(ddl)) > 1) {
+  const hasInputs = inputPaths.length > 0;
+  const hasDdl = ddlPaths.length > 0;
+  if ((sample ? 1 : 0) + Number(hasInputs) + Number(hasDdl) > 1) {
     throw new Error("Use only one schema source: --sample, --input, or --ddl.");
   }
 
-  return { input, ddl, output, format, sample };
+  return { inputPaths, ddlPaths, output, format, sample };
 }
 
 export class HelpRequestedError extends Error {
