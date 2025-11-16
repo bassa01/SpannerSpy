@@ -1,13 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { fileURLToPath } from "node:url";
 
-import { loadSchemaFromDdl, loadSchemaFromPaths } from "../src/lib/schema-loader";
+import { loadSchemaFromDdl, loadSchemaFromDdlPaths, loadSchemaFromPaths } from "../src/lib/schema-loader";
 import { sampleSchema } from "../src/sample/schema";
 
 const sampleDdlPath = fileURLToPath(new URL("../src/sample/schema.sql", import.meta.url));
 const complexDdlPath = fileURLToPath(new URL("./fixtures/complex-schema.sql", import.meta.url));
 const multiSchemaDirA = fileURLToPath(new URL("./fixtures/multi-schema/service-a", import.meta.url));
 const multiSchemaDirB = fileURLToPath(new URL("./fixtures/multi-schema/service-b", import.meta.url));
+const multiDdlDir = fileURLToPath(new URL("./fixtures/multi-ddl", import.meta.url));
 
 describe("loadSchemaFromDdl", () => {
   it("parses Cloud Spanner DDL into the schema model", async () => {
@@ -84,5 +85,26 @@ describe("loadSchemaFromPaths", () => {
     expect(fk).toBeTruthy();
     expect(fk?.referencingTable).toBe("Records");
     expect(fk?.referencedTable).toBe("Artists");
+  });
+});
+
+describe("loadSchemaFromDdlPaths", () => {
+  it("orders statements so dependent alters succeed", async () => {
+    const schema = await loadSchemaFromDdlPaths([multiDdlDir]);
+
+    const artists = schema.tables.find((table) => table.name === "Artists");
+    expect(artists?.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining(["ArtistId", "StageName", "DisplayName"]),
+    );
+
+    const records = schema.tables.find((table) => table.name === "Records");
+    expect(records?.columns.map((column) => column.name)).toEqual(
+      expect.arrayContaining(["PublishedAt"]),
+    );
+
+    const fk = schema.foreignKeys?.find((key) => key.name === "fk_records_artists");
+    expect(fk?.referencingTable).toBe("Records");
+    expect(schema.indexes?.some((idx) => idx.name === "idx_records_published")).toBe(true);
+    expect(schema.indexes?.some((idx) => idx.name === "idx_artists_display")).toBe(true);
   });
 });

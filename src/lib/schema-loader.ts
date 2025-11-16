@@ -1,4 +1,5 @@
-import { mkdir, readdir, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,18 +29,11 @@ export async function loadSchemaFromPaths(inputs: string[]): Promise<SpannerSche
     throw new Error("No schema input paths provided");
   }
 
-  const visited = new Set<string>();
-  const schemaFiles: string[] = [];
-
-  for (const target of inputs) {
-    const files = await expandInputPath(target);
-    for (const filePath of files) {
-      if (!visited.has(filePath)) {
-        visited.add(filePath);
-        schemaFiles.push(filePath);
-      }
-    }
-  }
+  const schemaFiles = await collectFilesFromTargets(inputs, {
+    description: "schema",
+    extensions: [".json"],
+    allowFilesWithAnyExtension: true,
+  });
 
   if (schemaFiles.length === 0) {
     throw new Error("No schema files found within the provided paths");
@@ -56,6 +50,29 @@ export async function loadSchemaFromPaths(inputs: string[]): Promise<SpannerSche
     foreignKeys: foreignKeys.length ? foreignKeys : undefined,
     indexes: indexes.length ? indexes : undefined,
   });
+}
+
+export async function loadSchemaFromDdlPaths(inputs: string[]): Promise<SpannerSchema> {
+  if (inputs.length === 0) {
+    throw new Error("No DDL paths provided");
+  }
+
+  const ddlFiles = await collectFilesFromTargets(inputs, {
+    description: "DDL",
+    extensions: [".sql"],
+    allowFilesWithAnyExtension: true,
+  });
+
+  if (ddlFiles.length === 0) {
+    throw new Error("No DDL files found within the provided paths");
+  }
+
+  if (ddlFiles.length === 1) {
+    return loadSchemaFromDdl(ddlFiles[0]!);
+  }
+
+  const combinedScript = await buildOrderedDdlScript(ddlFiles);
+  return loadSchemaFromCombinedDdl(combinedScript);
 }
 
 export async function loadSchemaFromDdl(sourcePath: string): Promise<SpannerSchema> {
@@ -144,32 +161,287 @@ async function fileExists(target: string): Promise<boolean> {
   }
 }
 
-async function expandInputPath(target: string): Promise<string[]> {
+interface FileCollectionOptions {
+  description: string;
+  extensions: string[];
+  allowFilesWithAnyExtension?: boolean;
+}
+
+async function collectFilesFromTargets(targets: string[], options: FileCollectionOptions): Promise<string[]> {
+  const seen = new Set<string>();
+  const files: string[] = [];
+
+  for (const target of targets) {
+    const expanded = await expandTarget(target, options);
+    for (const filePath of expanded) {
+      if (!seen.has(filePath)) {
+        seen.add(filePath);
+        files.push(filePath);
+      }
+    }
+  }
+
+  return files;
+}
+
+async function expandTarget(target: string, options: FileCollectionOptions): Promise<string[]> {
   let stats;
   try {
     stats = await stat(target);
   } catch {
-    throw new Error(`Schema path not found: ${target}`);
+    throw new Error(`${options.description} path not found: ${target}`);
   }
 
   if (stats.isFile()) {
+    if (!options.allowFilesWithAnyExtension && !hasAllowedExtension(target, options.extensions)) {
+      throw new Error(`${options.description} path must end with ${options.extensions.join(", ")}: ${target}`);
+    }
     return [target];
   }
 
   if (!stats.isDirectory()) {
-    throw new Error(`Unsupported schema path type: ${target}`);
+    throw new Error(`Unsupported ${options.description} path type: ${target}`);
   }
 
-  const entries = await readdir(target, { withFileTypes: true });
-  const files: string[] = [];
+  const collected: string[] = [];
+  await collectFilesFromDirectory(target, options, collected);
+  collected.sort();
+  return collected;
+}
+
+async function collectFilesFromDirectory(directory: string, options: FileCollectionOptions, acc: string[]) {
+  const entries = await readdir(directory, { withFileTypes: true });
   for (const entry of entries) {
-    const entryPath = path.join(target, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await expandInputPath(entryPath)));
-    } else if (entry.isFile() && entry.name.toLowerCase().endsWith(".json")) {
-      files.push(entryPath);
+    const entryPath = path.join(directory, entry.name);
+    let isDir = entry.isDirectory();
+    let isFile = entry.isFile();
+
+    if (entry.isSymbolicLink()) {
+      let stats: Awaited<ReturnType<typeof stat>>;
+      try {
+        stats = await stat(entryPath);
+      } catch {
+        continue;
+      }
+      isDir = stats.isDirectory();
+      isFile = stats.isFile();
+    }
+
+    if (isDir) {
+      await collectFilesFromDirectory(entryPath, options, acc);
+      continue;
+    }
+
+    if (isFile && hasAllowedExtension(entryPath, options.extensions)) {
+      acc.push(entryPath);
+    }
+  }
+}
+
+function hasAllowedExtension(filePath: string, extensions: string[]): boolean {
+  if (extensions.length === 0) {
+    return true;
+  }
+  const lower = filePath.toLowerCase();
+  return extensions.some((ext) => lower.endsWith(ext));
+}
+
+async function loadSchemaFromCombinedDdl(sql: string): Promise<SpannerSchema> {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "spannerspy-ddl-"));
+  const tempFile = path.join(tempDir, "combined.sql");
+  try {
+    await Bun.write(tempFile, sql);
+    return await loadSchemaFromDdl(tempFile);
+  } finally {
+    await rm(tempDir, { recursive: true, force: true });
+  }
+}
+
+type StatementKind = "createTable" | "alterTable" | "createIndex" | "other";
+
+const STATEMENT_PRIORITY: Record<StatementKind, number> = {
+  createTable: 0,
+  other: 1,
+  alterTable: 2,
+  createIndex: 3,
+};
+
+interface SqlStatement {
+  text: string;
+  kind: StatementKind;
+  order: number;
+}
+
+async function buildOrderedDdlScript(filePaths: string[]): Promise<string> {
+  const statements: SqlStatement[] = [];
+  let order = 0;
+
+  for (const filePath of filePaths) {
+    const content = await Bun.file(filePath).text();
+    const pieces = splitSqlStatements(content);
+    for (const piece of pieces) {
+      const trimmed = piece.trim();
+      if (!trimmed) {
+        continue;
+      }
+      statements.push({
+        text: ensureStatementTerminated(trimmed),
+        kind: classifyStatement(trimmed),
+        order: order,
+      });
+      order += 1;
     }
   }
 
-  return files.sort();
+  statements.sort((a, b) => {
+    const priorityDiff = STATEMENT_PRIORITY[a.kind] - STATEMENT_PRIORITY[b.kind];
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+    return a.order - b.order;
+  });
+
+  if (statements.length === 0) {
+    throw new Error("No DDL statements found within the provided files");
+  }
+
+  return `${statements.map((stmt) => stmt.text).join("\n\n")}\n`;
+}
+
+function splitSqlStatements(sql: string): string[] {
+  const statements: string[] = [];
+  let buffer = "";
+  let inSingle = false;
+  let inDouble = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sql.length; i += 1) {
+    const char = sql[i]!;
+    const next = sql[i + 1];
+
+    if (inLineComment) {
+      buffer += char;
+      if (char === "\n") {
+        inLineComment = false;
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      buffer += char;
+      if (char === "*" && next === "/") {
+        buffer += next;
+        i += 1;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && char === "-" && next === "-") {
+      buffer += char + next;
+      i += 1;
+      inLineComment = true;
+      continue;
+    }
+
+    if (!inSingle && !inDouble && char === "/" && next === "*") {
+      buffer += char + next;
+      i += 1;
+      inBlockComment = true;
+      continue;
+    }
+
+    if (!inDouble && char === "'") {
+      buffer += char;
+      if (inSingle) {
+        if (next === "'") {
+          buffer += next;
+          i += 1;
+        } else {
+          inSingle = false;
+        }
+      } else {
+        inSingle = true;
+      }
+      continue;
+    }
+
+    if (!inSingle && char === '"') {
+      buffer += char;
+      if (inDouble) {
+        if (next === '"') {
+          buffer += next;
+          i += 1;
+        } else {
+          inDouble = false;
+        }
+      } else {
+        inDouble = true;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && char === ";") {
+      buffer += char;
+      statements.push(buffer);
+      buffer = "";
+      continue;
+    }
+
+    buffer += char;
+  }
+
+  if (buffer.trim()) {
+    statements.push(buffer);
+  }
+
+  return statements;
+}
+
+function classifyStatement(statement: string): StatementKind {
+  const head = stripLeadingDecorators(statement).toUpperCase();
+  if (/^CREATE\s+TABLE\b/.test(head)) {
+    return "createTable";
+  }
+  if (/^ALTER\s+TABLE\b/.test(head)) {
+    return "alterTable";
+  }
+  if (/^CREATE\s+(?:UNIQUE\s+)?(?:NULL\s+FILTERED\s+)?INDEX\b/.test(head)) {
+    return "createIndex";
+  }
+  return "other";
+}
+
+function stripLeadingDecorators(sql: string): string {
+  let i = 0;
+  while (i < sql.length) {
+    const char = sql[i]!;
+    if (/\s/.test(char)) {
+      i += 1;
+      continue;
+    }
+    if (sql.startsWith("--", i)) {
+      const nextLine = sql.indexOf("\n", i + 2);
+      if (nextLine === -1) {
+        return "";
+      }
+      i = nextLine + 1;
+      continue;
+    }
+    if (sql.startsWith("/*", i)) {
+      const end = sql.indexOf("*/", i + 2);
+      if (end === -1) {
+        return "";
+      }
+      i = end + 2;
+      continue;
+    }
+    break;
+  }
+  return sql.slice(i);
+}
+
+function ensureStatementTerminated(statement: string): string {
+  return statement.endsWith(";") ? statement : `${statement};`;
 }

@@ -29,6 +29,7 @@ bun install
   ```
   bun start -- --ddl ./schema.sql
   ```
+  Repeat `--ddl <path>` or pass directories to stitch multiple files; statements are automatically ordered so CREATE TABLE definitions are parsed before ALTER TABLE or CREATE INDEX commands that depend on them.
 - Emit the intermediate diagram model instead of Mermaid:
   ```
   bun start -- --input ./schema.json --format json

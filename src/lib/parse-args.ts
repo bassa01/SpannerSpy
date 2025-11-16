@@ -2,7 +2,7 @@ export type OutputFormat = "mermaid" | "json";
 
 export interface CliOptions {
   inputPaths: string[];
-  ddl?: string;
+  ddlPaths: string[];
   output?: string;
   format: OutputFormat;
   sample: boolean;
@@ -16,7 +16,7 @@ const FORMAT_ALIASES: Record<string, OutputFormat> = {
 
 export function parseArgs(argv: string[]): CliOptions {
   const inputPaths: string[] = [];
-  let ddl: string | undefined;
+  const ddlPaths: string[] = [];
   let output: string | undefined;
   let format: OutputFormat = "mermaid";
   let sample = false;
@@ -43,7 +43,7 @@ export function parseArgs(argv: string[]): CliOptions {
         if (!value) {
           throw new Error(`Missing value for ${token}`);
         }
-        ddl = value;
+        ddlPaths.push(value);
         i += 1;
         break;
       }
@@ -92,11 +92,12 @@ export function parseArgs(argv: string[]): CliOptions {
   }
 
   const hasInputs = inputPaths.length > 0;
-  if ((sample ? 1 : 0) + Number(hasInputs) + Number(Boolean(ddl)) > 1) {
+  const hasDdl = ddlPaths.length > 0;
+  if ((sample ? 1 : 0) + Number(hasInputs) + Number(hasDdl) > 1) {
     throw new Error("Use only one schema source: --sample, --input, or --ddl.");
   }
 
-  return { inputPaths, ddl, output, format, sample };
+  return { inputPaths, ddlPaths, output, format, sample };
 }
 
 export class HelpRequestedError extends Error {

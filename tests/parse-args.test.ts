@@ -12,7 +12,7 @@ describe("parseArgs", () => {
     const options = parseArgs(["--input", "in.json", "--output", "out.mmd", "--format", "json"]);
     expect(options).toEqual({
       inputPaths: ["in.json"],
-      ddl: undefined,
+      ddlPaths: [],
       output: "out.mmd",
       format: "json",
       sample: false,
@@ -40,5 +40,10 @@ describe("parseArgs", () => {
   it("collects multiple paths from repeated flags and positionals", () => {
     const options = parseArgs(["--input", "first", "second", "--input", "third"]);
     expect(options.inputPaths).toEqual(["first", "second", "third"]);
+  });
+
+  it("collects multiple DDL paths", () => {
+    const options = parseArgs(["--ddl", "a.sql", "--ddl", "dir"]);
+    expect(options.ddlPaths).toEqual(["a.sql", "dir"]);
   });
 });

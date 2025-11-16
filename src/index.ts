@@ -1,6 +1,6 @@
 import { buildDiagram } from "./lib/diagram-builder";
 import { HelpRequestedError, parseArgs } from "./lib/parse-args";
-import { loadSchemaFromDdl, loadSchemaFromPaths } from "./lib/schema-loader";
+import { loadSchemaFromDdlPaths, loadSchemaFromPaths } from "./lib/schema-loader";
 import { renderMermaid } from "./renderers/mermaid";
 import { sampleSchema } from "./sample/schema";
 import type { CliOptions } from "./lib/parse-args";
@@ -26,18 +26,19 @@ async function main() {
 
 async function resolveSchema(options: CliOptions): Promise<SpannerSchema> {
   const hasInputs = options.inputPaths.length > 0;
-  const sourcesChosen = (options.sample ? 1 : 0) + Number(hasInputs) + Number(Boolean(options.ddl));
+  const hasDdl = options.ddlPaths.length > 0;
+  const sourcesChosen = (options.sample ? 1 : 0) + Number(hasInputs) + Number(hasDdl);
 
   if (sourcesChosen === 0) {
-    throw new Error("No schema input provided. Use --sample, --input path/to/schema.json, or --ddl path/to/schema.sql.");
+    throw new Error("No schema input provided. Use --sample, --input path/to/schema.json, or --ddl path/or/directory.");
   }
 
   if (options.sample) {
     return sampleSchema;
   }
 
-  if (options.ddl) {
-    return loadSchemaFromDdl(options.ddl);
+  if (hasDdl) {
+    return loadSchemaFromDdlPaths(options.ddlPaths);
   }
 
   if (hasInputs) {
@@ -70,7 +71,7 @@ function printHelp() {
   console.log("Usage: bun start -- [options]\n");
   console.log("Options:");
   console.log("  -i, --input <path>    JSON schema file or directory containing schema files (repeatable)");
-  console.log("  -d, --ddl <path>      Path to a Cloud Spanner DDL (SQL) file to parse with memefish");
+  console.log("  -d, --ddl <path>      Cloud Spanner DDL file or directory (repeatable)");
   console.log("      --sample          Use the built-in sample schema");
   console.log("  -f, --format <fmt>    Output format: mermaid (default) or json");
   console.log("  -o, --output <path>   Write diagram to disk instead of stdout");
