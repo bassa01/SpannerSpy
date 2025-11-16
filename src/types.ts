@@ -18,6 +18,26 @@ export interface SpannerColumn {
   comment?: string;
 }
 
+export interface RowDeletionPolicy {
+  columnName: string;
+  numDays: string;
+}
+
+export interface SpannerIndexKey {
+  name: string;
+  direction?: "ASC" | "DESC";
+}
+
+export interface SpannerIndex {
+  name: string;
+  table: string;
+  columns: SpannerIndexKey[];
+  storing?: string[];
+  interleavedIn?: string;
+  isUnique?: boolean;
+  isNullFiltered?: boolean;
+}
+
 export interface ForeignKey {
   name: string;
   referencingTable: string;
@@ -32,11 +52,13 @@ export interface SpannerTable {
   primaryKey: string[];
   interleavedIn?: string;
   comment?: string;
+  rowDeletionPolicy?: RowDeletionPolicy;
 }
 
 export interface SpannerSchema {
   tables: SpannerTable[];
   foreignKeys?: ForeignKey[];
+  indexes?: SpannerIndex[];
 }
 
 export interface DiagramNode {

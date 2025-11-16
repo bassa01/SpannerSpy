@@ -164,6 +164,85 @@ func TestSchemaBuilderDropColumnRemovesPrimaryKeyEntry(t *testing.T) {
 	}
 }
 
+func TestSchemaBuilderRowDeletionPolicies(t *testing.T) {
+	ddl := `
+        CREATE TABLE Sessions (
+            SessionId INT64 NOT NULL,
+            ExpiresAt TIMESTAMP NOT NULL
+        ) PRIMARY KEY (SessionId),
+          ROW DELETION POLICY (OLDER_THAN(ExpiresAt, INTERVAL 7 DAY));
+
+        ALTER TABLE Sessions
+          REPLACE ROW DELETION POLICY (OLDER_THAN(ExpiresAt, INTERVAL 14 DAY));
+
+        ALTER TABLE Sessions
+          DROP ROW DELETION POLICY;
+
+        ALTER TABLE Sessions
+          ADD ROW DELETION POLICY (OLDER_THAN(ExpiresAt, INTERVAL 21 DAY));
+    `
+
+	schema := parseSchema(t, ddl)
+	sessions := mustTable(t, schema, "Sessions")
+	if sessions.RowDeletionPolicy == nil {
+		t.Fatal("expected Sessions to retain a row deletion policy")
+	}
+
+	if sessions.RowDeletionPolicy.ColumnName != "ExpiresAt" {
+		t.Fatalf("unexpected row deletion column: %q", sessions.RowDeletionPolicy.ColumnName)
+	}
+	if sessions.RowDeletionPolicy.NumDays != "21" {
+		t.Fatalf("row deletion interval should be 21 days, got %s", sessions.RowDeletionPolicy.NumDays)
+	}
+}
+
+func TestSchemaBuilderIndexes(t *testing.T) {
+	ddl := `
+        CREATE TABLE Projects (
+            ProjectId INT64 NOT NULL,
+            OwnerId INT64 NOT NULL,
+            Status STRING(32),
+            UpdatedAt TIMESTAMP
+        ) PRIMARY KEY (ProjectId);
+
+        CREATE UNIQUE NULL_FILTERED INDEX idx_projects_owner_status
+          ON Projects (OwnerId ASC, Status DESC)
+          STORING (UpdatedAt),
+          INTERLEAVE IN Projects;
+    `
+
+	schema := parseSchema(t, ddl)
+	if len(schema.Indexes) != 1 {
+		t.Fatalf("expected 1 index, got %d", len(schema.Indexes))
+	}
+
+	idx := schema.Indexes[0]
+	if idx.Name != "idx_projects_owner_status" {
+		t.Fatalf("unexpected index name: %q", idx.Name)
+	}
+	if idx.Table != "Projects" {
+		t.Fatalf("unexpected indexed table: %q", idx.Table)
+	}
+	if !idx.IsUnique || !idx.IsNullFiltered {
+		t.Fatalf("expected unique + null filtered flags, got %+v", idx)
+	}
+	if idx.InterleavedIn != "Projects" {
+		t.Fatalf("expected index interleaved in Projects, got %q", idx.InterleavedIn)
+	}
+	if len(idx.Columns) != 2 {
+		t.Fatalf("expected two index columns, got %d", len(idx.Columns))
+	}
+	if idx.Columns[0].Name != "OwnerId" || idx.Columns[0].Direction != "ASC" {
+		t.Fatalf("unexpected first index column: %+v", idx.Columns[0])
+	}
+	if idx.Columns[1].Name != "Status" || idx.Columns[1].Direction != "DESC" {
+		t.Fatalf("unexpected second index column: %+v", idx.Columns[1])
+	}
+	if len(idx.Storing) != 1 || idx.Storing[0] != "UpdatedAt" {
+		t.Fatalf("unexpected storing columns: %v", idx.Storing)
+	}
+}
+
 // parseSchema turns a DDL string into a Schema using memefish to mirror the CLI pipeline.
 func parseSchema(t *testing.T, ddl string) *Schema {
 	t.Helper()

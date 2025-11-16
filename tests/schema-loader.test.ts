@@ -44,6 +44,7 @@ describe("loadSchemaFromDdl", () => {
     const orders = schema.tables.find((table) => table.name === "Orders");
     expect(orders?.interleavedIn).toBe("Tenants");
     expect(orders?.columns.find((column) => column.name === "RequestedAt")?.type).toBe("TIMESTAMP");
+    expect(orders?.rowDeletionPolicy).toEqual({ columnName: "RequestedAt", numDays: "60" });
 
     const foreignKeyNames = (schema.foreignKeys ?? []).map((fk) => fk.name).sort();
     expect(foreignKeyNames).toEqual(["Orders_TenantId_TypeId_fk", "fk_alltypes_tenants"]);
@@ -51,5 +52,22 @@ describe("loadSchemaFromDdl", () => {
     const compositeFk = schema.foreignKeys?.find((fk) => fk.name === "Orders_TenantId_TypeId_fk");
     expect(compositeFk?.referencingColumns).toEqual(["TenantId", "TypeId"]);
     expect(compositeFk?.referencedColumns).toEqual(["TenantId", "TypeId"]);
+
+    expect(tenants?.rowDeletionPolicy).toEqual({ columnName: "CreatedAt", numDays: "365" });
+
+    const indexes = schema.indexes ?? [];
+    expect(indexes).toHaveLength(1);
+    expect(indexes[0]).toMatchObject({
+      name: "idx_orders_status",
+      table: "Orders",
+      interleavedIn: "Tenants",
+      isUnique: true,
+      isNullFiltered: true,
+      storing: ["Description"],
+    });
+    expect(indexes[0].columns).toEqual([
+      { name: "TenantId", direction: "ASC" },
+      { name: "Status", direction: "DESC" },
+    ]);
   });
 });
