@@ -35,10 +35,6 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    document.documentElement.dataset.viewMode = viewMode;
-  }, [viewMode]);
-
-  useEffect(() => {
     if (!selectedTable) return;
     const fresh = diagram.tables.find((table) => table.name === selectedTable.name) ?? null;
     if (fresh !== selectedTable) {

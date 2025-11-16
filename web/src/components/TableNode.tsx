@@ -8,11 +8,15 @@ import type { ViewMode } from "../types/ui";
 
 type Props = NodeProps<Node<TableNodeData, "tableNode">>;
 
+const SIMPLE_MODE_COLUMN_LIMIT = 7;
+
 function TableNode({ data, selected }: Props) {
   const { table } = data;
   const viewMode: ViewMode = (data.viewMode as ViewMode) ?? "studio";
   const isSimple = viewMode === "simple";
-  const columns = isSimple ? table.columns.slice(0, 7) : table.columns;
+  const columns = isSimple
+    ? table.columns.slice(0, SIMPLE_MODE_COLUMN_LIMIT)
+    : table.columns;
   const hiddenCount = table.columns.length - columns.length;
   const primaryCount = table.columns.filter((column) => column.isPrimaryKey).length;
   return (
