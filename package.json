@@ -11,6 +11,8 @@
   },
   "files": [
     "dist",
+    "bin",
+    "tools/ddlparser",
     "README.md",
     "LICENSE*"
   ],
@@ -38,7 +40,7 @@
     "vite": "^5.1.6"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "@xyflow/react": "^12.3.5",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",

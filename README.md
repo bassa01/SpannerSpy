@@ -80,6 +80,7 @@ The server listens on stdio, so avoid writing to stdout (logs go to stderr).
 Cursor exposes MCP tools from the chat composer (`Cmd/Ctrl+L`). Select `spannerspy.renderDiagram`, provide arguments (examples below), and the response will contain the rendered Mermaid text you can copy into a Markdown block or preview directly in Cursor.
 
 ### Tool arguments
+
 | Field | Notes |
 | --- | --- |
 | `format` | `"mermaid"` (default) or `"json"` for the raw diagram model. |

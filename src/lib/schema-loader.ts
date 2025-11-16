@@ -282,6 +282,9 @@ function parseSchemaJson(payload: string): SpannerSchema {
 }
 
 function mergeSchemas(schemas: SpannerSchema[]): SpannerSchema {
+  if (schemas.length === 0) {
+    throw new Error("Cannot merge an empty array of schemas");
+  }
   if (schemas.length === 1) {
     return schemas[0]!;
   }
