@@ -4,6 +4,7 @@ import type { Edge, Node } from "@xyflow/react";
 
 import { normalizeSchema } from "@shared/lib/normalize-schema";
 import type { SpannerSchema } from "@shared/types";
+import type { ViewMode } from "../types/ui";
 
 const NODE_WIDTH = 300;
 const NODE_BASE_HEIGHT = 140;
@@ -51,6 +52,7 @@ export interface VisualDiagram {
 
 export type TableNodeData = Record<string, unknown> & {
   table: VisualTable;
+  viewMode?: ViewMode;
 };
 
 export type RelationshipEdgeData = Record<string, unknown> & {
