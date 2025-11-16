@@ -1,13 +1,30 @@
 {
   "name": "spannerspy",
+  "version": "0.1.0",
+  "description": "Generate lightweight ER diagrams from Cloud Spanner schemas.",
   "module": "src/index.ts",
   "type": "module",
-  "private": true,
+  "private": false,
+  "bin": {
+    "spannerspy": "./dist/spannerspy",
+    "spannerspy-mcp": "./dist/spannerspy-mcp"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "tools/ddlparser",
+    "README.md",
+    "LICENSE*"
+  ],
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test",
+    "build:cli": "bun build ./src/index.ts --compile --outfile dist/spannerspy",
+    "build:mcp": "bun build ./src/mcp/server.ts --compile --outfile dist/spannerspy-mcp",
+    "build:all": "bun run build:cli && bun run build:mcp",
+    "mcp": "bun run src/mcp/server.ts",
     "web:dev": "bunx vite --config web/vite.config.ts",
     "web:build": "bunx vite build --config web/vite.config.ts",
     "web:preview": "bunx vite preview --config web/vite.config.ts",
@@ -23,10 +40,12 @@
     "vite": "^5.1.6"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.1",
     "@xyflow/react": "^12.3.5",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.1.12"
   }
 }
